@@ -11,21 +11,15 @@ WORKDIR /app
 
 COPY . .
 
-# Diagnóstico completo
-RUN echo "=== ESTRUTURA DE PACOTES ===" && \
-    find src/main/java -type f -name "*.java" | sort && \
-    echo "\n=== PRIMEIRAS LINHAS DOS ARQUIVOS JAVA ===" && \
-    find src/main/java -name "*.java" -exec head -5 {} \; -exec echo "\n---\n" \; && \
-    echo "\n=== GROUP ID NO POM ===" && \
-    grep -A 2 "<groupId>" pom.xml || echo "GroupId não encontrado"
+RUN mvn clean install -DskipTests
 
-# Tentar compilar apenas um arquivo para teste
-RUN javac -d . $(find src/main/java -name "*.java" | head -1) || echo "Falha na compilação Java"
-
-# Tentar compilar com Maven
-RUN mvn clean compile -e || true
+RUN ls -la /app/target/
 
 FROM eclipse-temurin:25-jre-alpine
 EXPOSE 8080
-COPY --from=build /app/target/*.jar /app/
+
+COPY --from=build /app/target/*.jar app.jar
+
+RUN ls -la app.jar || echo "JAR não encontrado!"
+
 ENTRYPOINT ["java", "-jar", "app.jar"]
