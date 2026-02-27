@@ -1,27 +1,18 @@
-FROM ubuntu:latest AS build
-
-# Instalar Java e Maven
-RUN apt-get update && \
-    apt-get install -y openjdk-25-jdk maven && \
-    apt-get clean
-
-# Definir JAVA_HOME
-ENV JAVA_HOME=/usr/lib/jvm/java-25-openjdk-amd64
-ENV PATH=$JAVA_HOME/bin:$PATH
+FROM maven:3.9.9-eclipse-temurin-25 AS build
 
 WORKDIR /app
 
-COPY . .
+COPY pom.xml .
+RUN mvn dependency:go-offline
 
-RUN echo "=== VERIFICANDO POM.XML ===" && \
-    cat pom.xml
+COPY src ./src
 
-RUN mvn clean install -DskipTests
+RUN mvn clean package -DskipTests
 
 FROM eclipse-temurin:25-jre-alpine
-EXPOSE 8080
-
 
 COPY --from=build /app/target/*.jar app.jar
+
+EXPOSE 8080
 
 ENTRYPOINT ["java", "-jar", "app.jar"]
